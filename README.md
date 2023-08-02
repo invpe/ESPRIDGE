@@ -1,4 +1,7 @@
 # ESPRIDGE 🧑‍🚀
+
+![image](https://github.com/invpe/ESPRIDGE/assets/106522950/2f996084-6ec8-426b-a99f-cd349859138f)
+
 ESP32 based Home Automation Bridge that is easy to upload and simple to use.
 
 # What is it ?
