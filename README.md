@@ -11,6 +11,8 @@ After several PI crashes caused by the SD card, faulty upgrades and never-ending
 and migrate to something simple, low power, and always available - zero downtimes. 
 That's when i wrote my own implementation for the ultra low power device which is ESP32.
 
+Feel free to play with the code, modify and update it as you wish, just remember to give some shout outs somewhere 🤝
+
 # How does it work 🥣
 
 ESPRIDGE will respond to SSDP queries that will happen when you ask `Alexa discover devices`.
@@ -24,6 +26,21 @@ ESPRIDGE will respond to SSDP queries that will happen when you ask `Alexa disco
 When creating lights, you can provide these two urls in the form:
 
 ![image](https://github.com/invpe/ESPRIDGE/assets/106522950/570308ae-5327-4bd3-9e57-db3fc5708cd6)
+
+# How can i use it ? ❔
+
+Simply put your WiFi credentials in the code:
+
+```
+#define WIFI_A ""
+#define WIFI_P ""
+```
+
+Compile, Upload and you're ready to go 🍪
+
+
+- Access the panel via a simple url `http://espbridge/`
+- By default `OTA` is turned `ON`, you can change that with `#ifdef OTA_SUPPORT`
 
 
 # Screenshots 🖼️
