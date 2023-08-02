@@ -14,6 +14,11 @@ After several PI crashes caused by the SD card, faulty upgrades and never-ending
 and migrate to something simple, low power, and always available - zero downtimes. 
 That's when i wrote my own implementation for the ultra low power device which is ESP32.
 
+Today i am running this hub on the M5 AtomU device, without any hassle.
+
+![image](https://github.com/invpe/ESPRIDGE/assets/106522950/5d3b5267-1845-4321-b577-3b63dcd91f45)
+
+
 Feel free to play with the code, modify and update it as you wish, just remember to give some shout outs somewhere 🤝
 
 # How does it work 🥣
