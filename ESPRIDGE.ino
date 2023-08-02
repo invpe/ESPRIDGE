@@ -110,33 +110,70 @@ String SplitString(String data, char separator, int index)
   return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 //-----------------------//
+void SaveConfig()
+{
+  File configFile = SPIFFS.open("/config.txt", "w");
+  if (!configFile)
+  {
+    Serial.println("Cant save, is SPIFFS ready and space avaialable?");
+    return;
+  }
+
+  Serial.println("Saving config items: " + String(vLights.size()));
+  configFile.println(String(vLights.size()));
+  for (int x = 0; x < vLights.size(); x++)
+  {
+    configFile.println(vLights[x].m_strName);
+    configFile.println(vLights[x].m_strTurnOnCall);
+    configFile.println(vLights[x].m_strTurnOffCall);
+    configFile.println(vLights[x].m_strDeviceID);
+  }
+
+  configFile.close();
+}
+//-----------------------//
+bool LoadConfig()
+{
+  File configFile = SPIFFS.open("/config.txt", "r");
+  if (!configFile)
+  {
+    return false;
+  }
+
+  int iCount = configFile.readStringUntil('\n').toInt();
+  Serial.println("Config load items: " + String(iCount));
+  for (int x = 0; x < iCount; x++)
+  {
+    tLight _new;
+
+    _new.m_strName = configFile.readStringUntil('\n') ;
+    _new.m_strTurnOnCall = configFile.readStringUntil('\n') ;
+    _new.m_strTurnOffCall = configFile.readStringUntil('\n') ;
+    _new.m_strDeviceID = configFile.readStringUntil('\n') ;
+
+    vLights.push_back(_new);
+    Serial.println("Loaded " + _new.m_strName);
+  }
+  configFile.close();
+  return true;
+}
+//-----------------------//
 void setup()
 {
   //
   Serial.begin(115200);
-
-  // Todo:
-  // Add loading / storing the lights
-  
-  // Demo
-  for (int a = 0; a < 10; a++)
-  {
-    tLight _Light;
-    _Light.m_strName = "TEST" + String(a);
-    char formattedString[5];
-    sprintf(formattedString, "%02X", a);
-    _Light.m_strDeviceID = "00:17:88:01:08:ff:" + String(formattedString) + ":ff-0b";
-    _Light.m_bEnabled = false;
-    _Light.m_strTurnOnCall = "http://192.168.1.10/Bozon/alarm.php?arm=3";
-    _Light.m_strTurnOffCall = "http://192.168.1.10/Bozon/alarm.php?disarm=3";
-    vLights.push_back(_Light);
-  }
 
   // SPIFFS
   if (!SPIFFS.begin(true)) {
     Serial.println("An error occurred while starting SPIFFS");
     delay(1000);
   }
+
+  if (LoadConfig())
+  {
+    Serial.println("Config loaded, " + String(vLights.size()) + " devices added");
+  }
+
 
   WiFi.begin(WIFI_A, WIFI_P);
 
@@ -276,6 +313,8 @@ void setup()
       int iID = Apache.arg("id").toInt();
       vLights.erase(vLights.begin() + iID);
     }
+
+    SaveConfig();
     Apache.sendHeader("Location", "/", true);
     Apache.send ( 302, "text/plain", "");
   });
@@ -314,6 +353,12 @@ void setup()
         _new.m_strName         = Apache.arg("name");
         _new.m_strTurnOnCall   = Apache.arg("onaction");
         _new.m_strTurnOffCall  = Apache.arg("offaction");
+
+        // Needs better idea, so we don't duplicate the id :-)
+        char formattedString[5];
+        sprintf(formattedString, "%02X", rand() % 255);
+        _new.m_strDeviceID = "00:17:88:01:08:ff:" + String(formattedString) + ":ff-0b";
+
         vLights.push_back(_new);
       }
       else
@@ -327,6 +372,7 @@ void setup()
         }
       }
     }
+    SaveConfig();
     Apache.sendHeader("Location", "/", true);
     Apache.send ( 302, "text/plain", "");
   });
