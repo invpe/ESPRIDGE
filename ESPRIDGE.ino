@@ -123,10 +123,10 @@ void SaveConfig()
   configFile.println(String(vLights.size()));
   for (int x = 0; x < vLights.size(); x++)
   {
-    configFile.println(vLights[x].m_strName);
-    configFile.println(vLights[x].m_strTurnOnCall);
-    configFile.println(vLights[x].m_strTurnOffCall);
-    configFile.println(vLights[x].m_strDeviceID);
+    configFile.print(vLights[x].m_strName + "\n");
+    configFile.print(vLights[x].m_strTurnOnCall + "\n");
+    configFile.print(vLights[x].m_strTurnOffCall + "\n");
+    configFile.print(vLights[x].m_strDeviceID + "\n");
   }
 
   configFile.close();
@@ -174,7 +174,7 @@ void setup()
     Serial.println("Config loaded, " + String(vLights.size()) + " devices added");
   }
 
-
+  WiFi.hostname("ESPRIDGE"VER);
   WiFi.begin(WIFI_A, WIFI_P);
 
   // Give it 10 seconds to connect, otherwise reboot
@@ -239,18 +239,27 @@ void setup()
           deserializeJson(jsonBuffer, Apache.arg("plain"));
 
           String strEnableFlag = jsonBuffer["on"].as<String>();
-          if (strEnableFlag == "false") vLights[iIndex].m_bEnabled = false;
-          if (strEnableFlag == "true") vLights[iIndex].m_bEnabled = true;
-          strResponse = "[{\"success\": {\"/lights/" + strID + "/state/on\": " + strEnableFlag + "}}]";
-          Apache.sendContent(strResponse);
 
           // Call out external GET
           HTTPClient httpClient;
           uint32_t uiBytesWritten = 0;
-          if (strEnableFlag == "true")httpClient.begin(vLights[iIndex].m_strTurnOnCall);
-          else httpClient.begin(vLights[iIndex].m_strTurnOffCall);
+          if (strEnableFlag == "true")
+          {
+            httpClient.begin(vLights[iIndex].m_strTurnOnCall);
+            vLights[iIndex].m_bEnabled = true;
+          }
+          else
+          {
+            httpClient.begin(vLights[iIndex].m_strTurnOffCall);
+            vLights[iIndex].m_bEnabled = false;
+          }
           int httpCode = httpClient.GET();
-          vLights[iIndex].m_uiUseCounter++;
+
+          if (httpCode > 0)
+          { 
+            strResponse = "[{\"success\": {\"/lights/" + strID + "/state/on\": " + strEnableFlag + "}}]"; 
+            vLights[iIndex].m_uiUseCounter++;
+          }
         }
       }
       // Ask for the light status "/api/Echo/lights/5"
@@ -279,7 +288,7 @@ void setup()
     Apache.sendContent("<a href=https://github.com/invpe/ESPRIDGE>github</a><BR>");
     Apache.sendContent("<HR>");
     Apache.sendContent("<table>");
-    Apache.sendContent("<TD>Action</TD><TD>ID</TD><TD>Name</TD><TD>UseCounter</td><TR>");
+    Apache.sendContent("<TD>Action</TD><TD>ID</TD><TD>Name</TD><TD>UseCounter</td><td>On</td><td>Off</td><TR>");
     for (int x = 0; x < vLights.size(); x++)
     {
       Apache.sendContent("<TD>");
@@ -297,6 +306,18 @@ void setup()
       Apache.sendContent("<TD>");
       Apache.sendContent(String(vLights[x].m_uiUseCounter));
       Apache.sendContent("</TD>");
+
+
+      Apache.sendContent("<TD>");
+      Apache.sendContent("<a href=/turn?id=" + String(x) + "&mode=on>X</a>");
+      Apache.sendContent("</TD>");
+
+
+
+      Apache.sendContent("<TD>");
+      Apache.sendContent("<a href=/turn?id=" + String(x) + "&mode=off>X</a>");
+      Apache.sendContent("</TD>");
+
 
       Apache.sendContent("</TR>");
     }
@@ -318,6 +339,30 @@ void setup()
     Apache.sendHeader("Location", "/", true);
     Apache.send ( 302, "text/plain", "");
   });
+  Apache.on("/turn", [&]() {
+    Serial.println( Apache.client().remoteIP().toString() + " -> " + Apache.uri());
+    if (Apache.hasArg("id") && Apache.hasArg("mode"))
+    {
+      int iID       = Apache.arg("id").toInt();
+      if (iID <= 0 || iID > vLights.size() - 1)
+        return;
+
+      HTTPClient httpClient;
+
+      if (Apache.arg("mode") == "on")
+      {
+        httpClient.begin(vLights[iID].m_strTurnOnCall);
+      }
+      else
+      {
+        httpClient.begin(vLights[iID].m_strTurnOffCall);
+      }
+      int httpCode = httpClient.GET();
+    }
+    Apache.sendHeader("Location", "/", true);
+    Apache.send ( 302, "text/plain", "");
+  });
+
   Apache.on("/edit", [&]() {
     Serial.println( Apache.client().remoteIP().toString() + " -> " + Apache.uri());
     Apache.setContentLength(CONTENT_LENGTH_UNKNOWN);
@@ -336,10 +381,10 @@ void setup()
     }
     Apache.sendContent("<html><Center><TT>");
     Apache.sendContent("<form action=save method=get>");
-    Apache.sendContent("ID <input type=text name=id value=" + strID + " readonly></input><BR>");
-    Apache.sendContent("NAME <input type=text name=name value=" + strName + "></input><BR>");
-    Apache.sendContent("ONUrl <input type=text name=onaction value=" + strOnAction + "></input><BR>");
-    Apache.sendContent("OFFUrl <input type=text name=offaction value=" + strOffAction + "></input><BR>");
+    Apache.sendContent("ID <input type=text name=id value=\"" + strID + "\" readonly></input><BR>");
+    Apache.sendContent("NAME <input type=text name=name value=\"" + strName + "\"></input><BR>");
+    Apache.sendContent("ONUrl <input type=text name=onaction value=\"" + strOnAction + "\"></input><BR>");
+    Apache.sendContent("OFFUrl <input type=text name=offaction value=\"" + strOffAction + "\"></input><BR>");
     Apache.sendContent("<input type=submit>");
     Apache.sendContent(F(""));
   });
